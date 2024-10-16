@@ -1,0 +1,147 @@
+---
+title: "倾向性评分"
+output: word_document
+date: '2022-03-16'
+Author:'STAR'
+---
+读取数据库。
+```{r}
+library(xlsx)
+star <- read.xlsx("Database.xlsx",sheetName="star")
+```
+
+计算Table 1 and Table 2。
+```{r}
+library(tableone)
+```
+
+
+```{r}
+myVars <- c("Group","Primarycancer","Gender", "Treatments",	"Postambulatory",
+"Current.smoker",
+"Comorbidities",
+"ECOG", "Ambulatory.status","Age","Physical",	"Social",	"Emotional",	"Functional",	"Total","Physicalp",	"Socialp",	"Emotionalp",	"Functionalp",	"Totalp","Physicalp6",	"Socialp6",	"Emotionalp6",	"Functionalp6",	"Totalp6","Physicalp12",	"Socialp12",	"Emotionalp12",	"Functionalp12",	"Totalp12",	"Systematictreatment2") 
+
+#设置需要比较的变量名称 
+catVars <- c(
+"Group","Primarycancer","Gender","Treatments",	"Postambulatory",
+"Current.smoker",
+"Comorbidities",
+"ECOG", "Ambulatory.status"
+) #设置分类变量
+nonVars <- c()#设置非正态分布的变量
+```
+
+绘制出需要的表格1：
+```{r}
+tab2 <-CreateTableOne(data =star, #指定分析数据集
+vars = myVars, #指定比较的变量 
+factorVars = catVars) #指定其中的分类变量
+print(tab2) 
+print(tab2,nonnormal = nonVars) #指定非正态分布变量
+```
+
+
+```{r}
+tab22 <- print(tab2,  cramVars = catVars,  nonnormal = nonVars, quote = FALSE, #不显示引号  
+              noSpaces = TRUE,  printToggle = FALSE) 
+write.xlsx(tab22, file = "TABLE1-before ps.xlsx")
+```
+
+
+绘制出需要的表格2：
+```{r}
+tab4 <- CreateTableOne(data = star,  strata = "Group",   
+                       vars = myVars,  factorVars = catVars,  addOverall = TRUE) #添加Overall列的分析结果 
+print(tab4,  cramVars = catVars,  nonnormal = nonVars,  exact = "M") #查看tab4
+##print(tab4,  cramVars = catVars) #查看tab4
+```
+
+写出表格：
+```{r}
+tab5 <- print(tab4,  cramVars = catVars, nonnormal = nonVars, quote = FALSE, #不显示引号  
+              noSpaces = TRUE,  printToggle = FALSE, smd = TRUE) 
+write.xlsx(tab5, file = "TABLE2 before PS.xlsx")
+```
+
+开始倾向性评分运算
+```{r}
+library(MatchIt)
+psm<-matchit(Group~Age+Gender+Primarycancer+Current.smoker+Comorbidities+Ambulatory.status+Total,
+  data=star,method="nearest",ratio=1, caliper=0.02)
+summary(psm)
+```
+
+```{r}
+matchdata <- match.data(psm)
+```
+
+```{r}
+write.xlsx(matchdata, file = "matchdata.xlsx")
+```
+
+```{r}
+tiff(filename="Calibration_curve-T.tif", width=800*6, height=600*6, res=90*6)
+
+plot(psm, type="hist", interactive=FALSE)
+
+dev.off()
+```
+
+```{r}
+tiff(filename="Calibration_curve-T2.tif", width=800*6, height=600*6, res=90*6)
+
+plot(psm,type="jitter", interactive=FALSE)
+
+dev.off()
+```
+
+开始倾向性评分之后的组间比较运算
+```{r}
+myVars <- c("Group","Primarycancer","Gender", "Treatments",	"Postambulatory",
+"Current.smoker",
+"Comorbidities",
+"ECOG", "Ambulatory.status","Age","Physical",	"Social",	"Emotional",	"Functional",	"Total","Physicalp",	"Socialp",	"Emotionalp",	"Functionalp",	"Totalp","Physicalp6",	"Socialp6",	"Emotionalp6",	"Functionalp6",	"Totalp6","Physicalp12",	"Socialp12",	"Emotionalp12",	"Functionalp12",	"Totalp12",	"Systematictreatment2") 
+
+#设置需要比较的变量名称 
+catVars <- c(
+"Group","Primarycancer","Gender","Treatments",	"Postambulatory",
+"Current.smoker",
+"Comorbidities",
+"ECOG", "Ambulatory.status"
+) #设置分类变量
+nonVars <- c()#设置非正态分布的变量
+```
+
+绘制出需要的表格1：
+```{r}
+tab2 <-CreateTableOne(data =matchdata, #指定分析数据集
+vars = myVars, #指定比较的变量 
+factorVars = catVars) #指定其中的分类变量
+print(tab2) 
+print(tab2,nonnormal = nonVars) #指定非正态分布变量
+```
+
+
+```{r}
+tab22 <- print(tab2,  cramVars = catVars,  nonnormal = nonVars, quote = FALSE, #不显示引号  
+              noSpaces = TRUE,  printToggle = FALSE) 
+write.xlsx(tab22, file = "TABLE1-after ps.xlsx")
+```
+
+绘制出需要的表格2：
+```{r}
+tab4 <- CreateTableOne(data = matchdata,  strata = "Group",   
+                       vars = myVars,  factorVars = catVars,  addOverall = TRUE) #添加Overall列的分析结果 
+print(tab4,  cramVars = catVars,  nonnormal = nonVars,  exact = "M") #查看tab4
+##print(tab4,  cramVars = catVars) #查看tab4
+```
+
+写出表格：
+```{r}
+tab5 <- print(tab4,  cramVars = catVars, nonnormal = nonVars, quote = FALSE, #不显示引号  
+              noSpaces = TRUE,  printToggle = FALSE, smd = TRUE) 
+write.xlsx(tab5, file = "TABLE2-after ps.xlsx")
+```
+
+
